@@ -1,12 +1,10 @@
 package com.themarblefamily.marblecoin.market;
 
-import com.themarblefamily.marblecoin.sim.Trader;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -36,7 +34,7 @@ public class MarketStatsService {
             currentStats.put("Sold in Last min", (double) tickers.size() - stats.get("Total"));
             currentStats.put("Highest", lastMinTickers.stream().mapToDouble(Ticker::getPrice).max().orElse(0));
             currentStats.put("Volume", lastMinTickers.stream().mapToDouble(Ticker::getLast_size).sum());
-            currentStats.put("Average", lastMinTickers.stream().mapToDouble(Ticker::getPrice).sum() / currentStats.get("Sold in Last min"));
+            currentStats.put("Average", lastMinTickers.get(lastMinTickers.size() - 1).getPrice());
             updateEMAS(currentStats.get("Average"));
             updateMACDs();
             updateMACDSignals();
@@ -45,7 +43,7 @@ public class MarketStatsService {
         }
         currentStats.forEach((key, value) -> stats.put(key, value));
 
-//        printStats(stats);
+        printStats(stats);
     }
 
     private void updateMACDs() {
@@ -71,8 +69,8 @@ public class MarketStatsService {
         EMAS.forEach(ema -> stats.put(ema, calculateEMA(newPrice, stats.get(ema), Double.parseDouble(ema.split("EMA")[1]), 2)));
     }
 
-    private double calculateEMA(double nowPrice, double lastPrice, double days, double smoothing) {
-        return (nowPrice * (smoothing / (1 + days))) + (lastPrice * (1 - (smoothing / (1 + days))));
+    private double calculateEMA(double nowPrice, double lastPrice, double period, double smoothing) {
+        return (nowPrice * (smoothing / (1 + period))) + (lastPrice * (1 - (smoothing / (1 + period))));
     }
 
     public void addInitialEMAs(List<String> EMAs) {
@@ -87,17 +85,17 @@ public class MarketStatsService {
         }));
     }
 
-    private void addInitialEMA(int days) {
+    private void addInitialEMA(int period) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'z'");
         String nowTime = LocalDateTime.now(ZoneOffset.UTC).format(formatter);
-        String xDay = LocalDateTime.now(ZoneOffset.UTC).minusDays(days - 1).format(formatter);
-        int gran = 86400;
-        List<HistoricRate> historicRates = marketDataService.getHistoricRate(xDay, nowTime, gran);
+        String xPeriod = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(period - 1).format(formatter);
+        int gran = 60;
+        List<HistoricRate> historicRates = marketDataService.getHistoricRate(xPeriod, nowTime, gran);
         if (historicRates != null) {
-            stats.put("EMA" + days, historicRates.stream().mapToDouble(HistoricRate::getClose).sum() / days - 1);
-            LOGGER.log(Level.INFO, "Added Initial EMA for " + days + " days");
+            stats.put("EMA" + period, historicRates.stream().mapToDouble(HistoricRate::getClose).sum() / (period - 1));
+            LOGGER.log(Level.INFO, "Added Initial EMA for " + period + " minutes");
         } else {
-            LOGGER.log(Level.WARNING, "Error getting AMA for " + days);
+            LOGGER.log(Level.WARNING, "Error getting AMA for " + period);
         }
         TimeUtils.waitSec(2);
     }

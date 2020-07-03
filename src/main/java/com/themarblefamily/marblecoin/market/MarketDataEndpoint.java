@@ -14,9 +14,17 @@ public class MarketDataEndpoint {
     @Autowired
     MarketDataService marketDataService;
 
+    @Autowired
+    MarketFeedService marketFeedService;
+
     @GetMapping(value = "/historic/{start}/{stop}/{granularity}")
     public @ResponseBody List<HistoricRate> getHistoricData(@PathVariable String start, @PathVariable String stop,
                                                             @PathVariable int granularity) {
         return marketDataService.getHistoricRate(start, stop, granularity);
+    }
+
+    @GetMapping(value = "/ticker/price")
+    public @ResponseBody Double getTickerPrice() {
+        return marketFeedService.getTickers().get(marketFeedService.getTickers().size() - 1).getPrice();
     }
 }

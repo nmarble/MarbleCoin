@@ -19,7 +19,7 @@ public class BitcoinTrader {
     private final static Logger LOGGER = Logger.getLogger(BitcoinTrader.class.getName());
     private final static double STARTING_MONEY = 10000;
     private final static double STARTING_BTC = 0;
-    List<Trader> traders = new ArrayList<>();
+    private List<Trader> traders = new ArrayList<>();
 
     @Autowired
     MarketStatsService marketStatsService;
@@ -87,5 +87,9 @@ public class BitcoinTrader {
             LOGGER.log(Level.WARNING, trader.getName() + " BOUGHT: " + btcToBuy + " btc for " + cost  + " price at " + stats.get("Average"));
         }
         trader.printWallet();
+    }
+
+    public List<Trader> getTraders() {
+        return traders;
     }
 }
